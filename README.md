@@ -37,15 +37,18 @@ oauth관련해서는 모바일 앱과의 통신은 어떻게 하는지 몰라서
 도메인은 가비아에서 구매해서 Route 53에서 호스팅 영역을 설정하고 레코드 생성해서 도메인과 연결했다.
 DNS 설정은 가장 기본적인 A 레코드를 사용했다.
 <br/>
+
 - HTTPS 적용 (ACM, Route 53):
 먼저 AWS의 Certificate Manager를 통해 SSL 인증서를 받고, Route 53에서 레코드를 생성하고 EC2 인바운드규칙을 443포트를 열어줬다.
 그리고 로드 밸런서를 생성하고 A레코드를 수정해서 https 연결을 마쳤다.
 (블로그 정리)[https://thcoding.tistory.com/121]
 <br/>
+
 - GitHub Actions를 활용한 CI/CD 구현:
-CI/CD 파이프라인을 구축하기 위해서 한번 배워본적 있는 Github Actions를 사용해봤다. 처음엔 프론트코드까지 다 빌드를 했는데, 회의를 통해서 프론트 코드는 제외하고 빌드했다.
+CI/CD 파이프라인을 구축하기 위해서 한번 배워본적 있는 Github Actions를 사용해봤다. 처음엔 프론트코드까지 다 빌드를 했는데, 회의를 통해서 프론트 코드는 제외하고 빌드했다.
 <br/>
-```
+
+```yaml
 
 name: Java CI with Gradle
 

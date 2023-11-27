@@ -18,43 +18,109 @@
 <br/>
 
 - Local User, OAuth2 User API 개발:
-
-어떤 목적으로 이 API가 개발되었는지 간략히 설명하세요.
-어떤 역할을 하는 API인지, 주요 기능은 무엇인지 기술하세요.
-주요 엔드포인트와 해당 엔드포인트에서 사용되는 요청과 응답에 대한 예시를 제공하세요.
 먼저 내가 이번 프로젝트에서 맡은 부분은 유저와, 배포다. Local 유저의 로그인을 위해서 Session 방식과 JWT 방식중 JWT을 택했다. 모바일 서비스를 만들기로 결정했고, 모바일엔 쿠키가 없으므로 JWT방식을 택했다.
 엔드포인트는 api/v1/users가 기본이되고, 로그인은 OAuth2 유저와 로컬 유저가 동일한 방식을 사용해서 api/v1/auth로 설정했다. 사실 같은 엔드포인트로 만들었어도 됐었는데 초기엔 이것저것 시도해보다가 이렇게 하는게 맞다고생각해서 
 따로 엔드포인트를 만들게되었다. 그리고 프론트분들과 상의했을때 회원가입에 이메일인증을 넣자는 아이디어가 나와서 처음에 SMTP서버와 통신하는 JavaMailSender를 사용해서 회원가입시 인증번호를 보내는 api를 만들었다.
 추후에, 아이디/비밀번호 찾기 api도 필요해서 추가적으로 만들었다.
-oauth관련해서는 모바일 앱과의 통신은 어떻게 하는지 몰라서 웹앱기준으로 만들었는데 나중에 프론트분들과 같이 작업하다가 모바일과 웹앱의 Oauth2 시퀀스가 다르다는걸 깨닫고 간단히 
+oauth관련해서는 모바일 앱과의 통신은 어떻게 하는지 몰라서 웹앱기준으로 만들었는데 나중에 프론트분들과 같이 작업하다가 모바일과 웹앱의 Oauth2 시퀀스가 다르다는걸 깨닫고 간단히 userId,providerType 만 입력받아 db에 입력받은 userId
+가 있으면 로그인처리, 없으면 회원가입 처리를 해주는 api를 만들었다.
 <br/>
+
 - AWS EC2에 서버 배포:
-
-서버를 AWS EC2에 배포한 이유와 배포 프로세스를 간략하게 설명하세요.
-사용한 AMI, 인스턴스 유형 등에 대한 기술적인 세부 사항을 언급하세요.
+먼저 서버배포는 부트캠프에서 배운 경험이 있는 AWS를 사용했다. 다른 클라우드 서비스보다도 프리티어가 1년정도 제공되어 굉장히 저렴한 가격에 배포를 했다.
+먼저 가상서버로 EC2를 사용했다. 프리티어는 선택지가 t2.micro뿐이라 이걸 선택했고, AMI는 ubuntu로 선택했다.
+프리티어라 메모리가 부족해 뻗어버리는 상황이 발생해 스왑파일을 만들어 메모리를 늘렸다.
+(블로그 정리)[https://thcoding.tistory.com/103]
 <br/>
-- 도메인 구매 및 연결:
 
-어떤 도메인을 구매했는지 설명하고, 해당 도메인을 연결하는 과정을 설명하세요.
-DNS 설정 등에 대한 핵심 단계를 포함하세요.
+- 도메인 구매 및 연결:
+도메인은 가비아에서 구매해서 Route 53에서 호스팅 영역을 설정하고 레코드 생성해서 도메인과 연결했다.
+DNS 설정은 가장 기본적인 A 레코드를 사용했다.
 <br/>
 - HTTPS 적용 (ACM, Route 53):
-
-ACM (AWS Certificate Manager) 및 Route 53을 사용하여 HTTPS를 어떻게 구현했는지 설명하세요.
-SSL/TLS 인증서의 발급과 갱신, Route 53을 통한 DNS 레코드 설정 등에 대한 내용을 포함하세요.
+먼저 AWS의 Certificate Manager를 통해 SSL 인증서를 받고, Route 53에서 레코드를 생성하고 EC2 인바운드규칙을 443포트를 열어줬다.
+그리고 로드 밸런서를 생성하고 A레코드를 수정해서 https 연결을 마쳤다.
+(블로그 정리)[https://thcoding.tistory.com/121]
 <br/>
 - GitHub Actions를 활용한 CI/CD 구현:
-
-CI/CD를 구현한 동기와 이점에 대해 간략히 설명하세요.
-GitHub Actions에서 사용한 워크플로우에 대한 핵심 세부 사항을 제공하세요.
-빌드, 테스트, 배포의 각 단계를 어떻게 수행했는지 설명하세요.
+CI/CD 파이프라인을 구축하기 위해서 한번 배워본적 있는 Github Actions를 사용해봤다. 처음엔 프론트코드까지 다 빌드를 했는데, 회의를 통해서 프론트 코드는 제외하고 빌드했다.
 <br/>
+```
+
+name: Java CI with Gradle
+
+on:
+  push:
+    branches: ["dev"]
+  pull_request:
+    branches: ["dev"]
+
+permissions:
+  contents: read
+
+env:
+  S3_BUCKET_NAME: b-knockknock
+
+jobs:
+  build:
+    name: Backend CI/CD
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: back/KnockKnock
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up JDK 11
+        uses: actions/setup-java@v3
+        with:
+          java-version: "11"
+          distribution: "temurin"
+      - name: Build with Gradle
+        run: ./gradlew clean build -Pprofile=dev
+      #       uses: gradle/gradle-build-action@bd5760595778326ba7f1441bcf7e88b49de61a25 # v2.6.0
+      #       with:
+      #         arguments: build
+      # build한 후 프로젝트를 압축합니다.
+      - name: Make zip file
+        run: zip -r ./test2-deploy.zip . -x "Knock Knock/*"
+        shell: bash
+
+      # Access Key와 Secret Access Key를 통해 권한을 확인합니다.
+      # 아래 코드에 Access Key와 Secret Key를 직접 작성하지 않습니다.
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }} # 등록한 Github Secret이 자동으로 불려옵니다.
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }} # 등록한 Github Secret이 자동으로 불려옵니다.
+          aws-region: us-east-1
+
+        # 압축한 프로젝트를 S3로 전송합니다.
+      - name: Upload to S3
+        run: aws s3 cp --region us-east-1 ./test2-deploy.zip s3://b-knockknock/test2-deploy.zip
+      #     - name: Grant execute permission for gradlew
+      #       run: chmod +x ./gradlew build
+      #     CodeDeploy에게 배포 명령을 내립니다.
+      - name: Code Deploy
+        run: >
+          aws deploy create-deployment --application-name knockknock
+          --deployment-config-name CodeDeployDefault.AllAtOnce
+          --deployment-group-name knockknock-group
+          --s3-location bucket=$S3_BUCKET_NAME,bundleType=zip,key=test2-deploy.zip
+
+```
+
+(블로그 정리)[https://thcoding.tistory.com/111]
+
+<br/>
+
 - Docker 이미지 빌드 및 컨테이너 생성:
-
-Docker를 사용하여 애플리케이션을 패키징하고 배포하는 이유에 대해 간략히 설명하세요.
-Docker 이미지를 빌드하고 컨테이너를 생성하는 과정에 대한 주요 단계를 서술하세요.
+개발환경과 운영환경의 일치 등 다양한 장점으로 Docker를 사용해보고 싶었다. 그래서 EC2내에 도커를 설치하고, 이미지를 빌드하고, 이미지를 토대로 컨테이너를 만들고 컨테이너를 삭제한다.
+위의 GithubActions의 gradle.yml 파일 마지막 단계에 Code Deploy 단계에서 AWS의 Code Deploy를 사용해 기존 컨테이너를 중지시키고 빌드된 이미지를 삭제하고 새로 이미지를 빌드하고
+컨테이너를 실행해서 수정된 코드가 적용된다.
 <br/>
-- RDS를 이용한 MySQL 데이터베이스 관리:
 
-RDS를 선택한 이유와 어떤 데이터베이스 스키마를 사용했는지 설명하세요.
-RDS 설정 및 관리에 대한 핵심 내용을 언급하세요.
+- RDS를 이용한 MySQL 데이터베이스 관리:
+먼저 RDS를 사용한 이유는 DB관리비용과 메모리부담을 줄이려 RDS를 사용하게 되었다. EC2인스턴스의 메모리가 작은데 DB까지 쓰게 되면 금방 뻗어버릴게 분명해서 RDS를 따로 쓰게 되었다.
+그 외엔 확장성, 보안, 안전성 때문에도 사용했다.
